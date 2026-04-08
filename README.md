@@ -7,7 +7,7 @@
 ### 1. リポジトリのクローン
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/nkkn-prog/analytics-setting.git
 cd analytics-setting
 ```
 
