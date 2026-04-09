@@ -34,10 +34,10 @@ cp .env.example .env
 `.env` を編集し、実際の値を設定する:
 
 ```dotenv
-GA4_ACCOUNT_ID=390172368
+GA4_ACCOUNT_ID=your-ga4-account-id
 GA4_TIMEZONE=Asia/Tokyo
 GA4_CURRENCY_CODE=JPY
-GTM_ACCOUNT_ID=6348599821
+GTM_ACCOUNT_ID=your-gtm-account-id
 GOOGLE_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxx
 ```
