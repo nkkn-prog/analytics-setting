@@ -11,12 +11,16 @@ setup_all.py
 │
 ├── Step 1: GA4 Admin API
 │   ├── プロパティ作成（既存あればスキップ）
-│   └── Web データストリーム作成 → Measurement ID (G-XXXXXXX) 取得
+│   ├── Web データストリーム作成 → Measurement ID (G-XXXXXXX) 取得
+│   ├── カスタムディメンション登録（--config 指定時、既存あればスキップ）
+│   └── コンバージョン登録（--config 指定時、既存あればスキップ）
 │
 ├── Step 2: GTM API
 │   ├── コンテナ作成（既存あればスキップ）
 │   ├── GA4 設定タグ作成（既存あればスキップ）
-│   ├── Clarity タグ作成（任意、既存あればスキップ）
+│   ├── カスタムタグ（preset 駆動・任意、既存あればスキップ）
+│   │   ├── ga4_event    … GA4 イベントタグ + 必要なトリガーを生成
+│   │   └── custom_html  … 任意の HTML スニペット
 │   └── バージョン公開（新規タグがある場合のみ）
 │       → GTM Public ID (GTM-XXXXXXX) 取得
 │
@@ -148,8 +152,10 @@ python setup_all.py \
     --client-name "田中クリニック" \
     --client-slug "tanaka-clinic" \
     --site-url "https://tanaka-clinic.com/" \
-    --clarity-project-id "xxxxxxxxxx"   # 任意
+    --config clients/tanaka-clinic/tags.yaml   # 任意（カスタムタグ）
 ```
+
+案件ごとのカスタムタグは CLI 引数では破綻するため、`--config` で YAML を渡す形に統一する。
 
 初回実行時はブラウザが開き Google 認証を求められる。認証後 `token.json` が保存され、2回目以降は自動。
 
@@ -160,8 +166,56 @@ python setup_all.py \
 | `--client-name` | Yes | 顧客の表示名 | `田中クリニック` |
 | `--client-slug` | Yes | 顧客識別子（英数字・ハイフン） | `tanaka-clinic` |
 | `--site-url` | Yes | サイト URL（末尾 `/` 必須） | `https://tanaka-clinic.com/` |
-| `--clarity-project-id` | No | Microsoft Clarity プロジェクト ID | `xxxxxxxxxx` |
+| `--config` | No | クライアント固有のカスタムタグ等を定義する YAML | `clients/tanaka-clinic/tags.yaml` |
 | `--verification-method` | No | Search Console 検証方式（デフォルト: `ANALYTICS`） | `ANALYTICS` / `TAG_MANAGER` |
+
+### 設定ファイル（`--config`）
+
+クライアント固有の計測仕様（GA4 カスタムイベント・コンバージョン・カスタムディメンション）を
+YAML 1本で宣言する。実行時に GA4 管理画面 + GTM の両方を一気通貫で自動セットアップする。
+
+```yaml
+# clients/tanaka-clinic/tags.yaml
+ga4:
+  custom_events:
+    - name: form_submit_clinic
+      trigger: form_submit         # 全フォーム送信で発火
+      mark_as_conversion: true     # GA4 側で「主要なイベント」に昇格
+    - name: page_view_thanks
+      trigger: page_view
+      mark_as_conversion: true
+  custom_dimensions:
+    - parameter_name: line_friend_id
+      display_name: LINE Friend ID
+      scope: EVENT                 # EVENT / USER / ITEM
+
+# preset 直書きも可能（preset に該当しない案件特有スニペット用）
+# custom_tags:
+#   - preset: custom_html
+#     name: "..."
+#     html: |
+#       <script>...</script>
+```
+
+`ga4.custom_events[]` の各イベントは内部で `ga4_event` preset に変換され、GTM 側に
+「GA4 イベントタグ + 必要なトリガー」が冪等に生成される。`mark_as_conversion: true`
+のものは GA4 Admin API でコンバージョン登録される。
+
+#### preset 一覧
+
+| preset | 用途 | 必須フィールド | 対応トリガー |
+|--------|------|--------------|------------|
+| `ga4_event` | GA4 イベントタグ + 必要なトリガー | `name`, `trigger` | `form_submit` / `page_view` |
+| `custom_html` | 任意の HTML スニペット | `name`, `html` | `all_pages` |
+
+クリックセレクタ系トリガー（電話タップ・特定ボタンクリック等）は後続 PR で対応予定。
+
+#### 環境変数展開
+
+機微値は `${ENV_VAR}` で .env / 環境変数に逃がせる（例: `value: "${SOME_API_KEY}"`）。
+未定義の環境変数を参照すると起動時に `ValueError` で止まる。
+
+サンプルは [`clients/example/tags.yaml`](../clients/example/tags.yaml) を参照。
 
 ### 各モジュール単体実行
 
@@ -188,6 +242,8 @@ python search_console/setup.py "https://tanaka-clinic.com/" ANALYTICS
 |---------|---------|--------------|
 | プロパティ | `display_name` が一致するプロパティをアカウント内で検索 | 既存プロパティの ID と Measurement ID を再利用 |
 | データストリーム | プロパティ内の Web ストリームを検索 | 既存の Measurement ID を返す。ストリームがなければ作成 |
+| カスタムディメンション | `parameter_name` で照合 | スキップ |
+| コンバージョン | `event_name` で照合 | スキップ |
 
 ### GTM
 
@@ -195,8 +251,9 @@ python search_console/setup.py "https://tanaka-clinic.com/" ANALYTICS
 |---------|---------|--------------|
 | コンテナ | `name` が `client_{slug}` と一致するコンテナをアカウント内で検索 | 既存コンテナの ID と Public ID を再利用 |
 | GA4 設定タグ | ワークスペース内のタグ一覧で `type == "gaawc"` を検索。検索漏れ時は作成の重複名エラーをキャッチ | スキップ |
-| Clarity タグ | ワークスペース内のタグ一覧で `name == "Microsoft Clarity"` を検索。同上 | スキップ |
-| バージョン公開 | 新規タグの作成がなかった場合 | 公開済みの最新バージョン ID を返す（再公開しない） |
+| カスタムタグ（preset） | ワークスペース内のタグ一覧で `name` 一致を検索。検索漏れ時は作成の重複名エラーをキャッチ | スキップ |
+| トリガー（preset） | ワークスペース内のトリガー一覧で `name` 一致を検索 | スキップ |
+| バージョン公開 | 新規タグ・トリガーの作成がなかった場合 | 公開済みの最新バージョン ID を返す（再公開しない） |
 
 ### Search Console
 

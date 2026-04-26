@@ -9,7 +9,12 @@ import os
 
 from dotenv import load_dotenv
 from google.analytics.admin_v1beta import AnalyticsAdminServiceClient
-from google.analytics.admin_v1beta.types import DataStream, Property
+from google.analytics.admin_v1beta.types import (
+    ConversionEvent,
+    CustomDimension,
+    DataStream,
+    Property,
+)
 
 from auth import get_credentials
 
@@ -126,6 +131,103 @@ def create_property_and_stream(
         "stream_name": created_stream.name,
         "skipped": False,
     }
+
+
+CUSTOM_DIMENSION_SCOPE_MAP = {
+    "EVENT": CustomDimension.DimensionScope.EVENT,
+    "USER": CustomDimension.DimensionScope.USER,
+    "ITEM": CustomDimension.DimensionScope.ITEM,
+}
+
+
+def setup_custom_dimensions(
+    client: AnalyticsAdminServiceClient,
+    property_name: str,
+    dimensions: list[dict],
+) -> int:
+    """GA4 カスタムディメンションを冪等に登録する。
+
+    Args:
+        property_name: "properties/{id}"
+        dimensions: [
+            {"parameter_name": "...", "display_name": "...", "scope": "EVENT"},
+            ...
+        ]
+
+    Returns:
+        新規作成したディメンション数
+    """
+    if not dimensions:
+        return 0
+
+    existing = {
+        d.parameter_name: d
+        for d in client.list_custom_dimensions(parent=property_name)
+    }
+
+    created = 0
+    for spec in dimensions:
+        param = spec.get("parameter_name")
+        display = spec.get("display_name")
+        scope = spec.get("scope", "EVENT")
+        if not param or not display:
+            raise ValueError(
+                f"custom_dimensions の各要素には parameter_name / display_name が必須: {spec!r}"
+            )
+        if scope not in CUSTOM_DIMENSION_SCOPE_MAP:
+            raise ValueError(
+                f"custom_dimensions.scope は {sorted(CUSTOM_DIMENSION_SCOPE_MAP)} のいずれか（指定: {scope!r}）"
+            )
+
+        if param in existing:
+            logger.info(f"  カスタムディメンション既存（スキップ）: {param}")
+            continue
+
+        logger.info(f"  カスタムディメンション作成: {param} ({display})")
+        client.create_custom_dimension(
+            parent=property_name,
+            custom_dimension=CustomDimension(
+                parameter_name=param,
+                display_name=display,
+                scope=CUSTOM_DIMENSION_SCOPE_MAP[scope],
+            ),
+        )
+        created += 1
+    return created
+
+
+def setup_conversion_events(
+    client: AnalyticsAdminServiceClient,
+    property_name: str,
+    event_names: list[str],
+) -> int:
+    """イベント名 list を GA4 の「主要なイベント（コンバージョン）」に昇格する。
+
+    既に登録済みのイベント名はスキップする。
+
+    Returns:
+        新規作成したコンバージョン数
+    """
+    if not event_names:
+        return 0
+
+    existing = {
+        e.event_name
+        for e in client.list_conversion_events(parent=property_name)
+    }
+
+    created = 0
+    for name in event_names:
+        if name in existing:
+            logger.info(f"  コンバージョン既存（スキップ）: {name}")
+            continue
+        logger.info(f"  コンバージョン登録: {name}")
+        client.create_conversion_event(
+            parent=property_name,
+            conversion_event=ConversionEvent(event_name=name),
+        )
+        created += 1
+    return created
 
 
 if __name__ == "__main__":

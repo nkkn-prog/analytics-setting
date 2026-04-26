@@ -1,0 +1,5 @@
+# 実クライアント設定はリポジトリにコミットしない（example/ はサンプルのため除外）
+*
+!.gitignore
+!example/
+!example/**
