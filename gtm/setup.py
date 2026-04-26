@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 
 from auth import get_credentials
+from gtm.presets import get_preset
 
 load_dotenv()
 
@@ -124,6 +125,143 @@ def create_ga4_tag(gtm_service, container_id, workspace_id, measurement_id):
     return tag
 
 
+def find_tag_by_name(gtm_service, container_id, workspace_id, tag_name):
+    """ワークスペース内で name 一致のタグを検索する（カスタムタグの冪等性チェック用）。"""
+    parent = f"accounts/{GTM_ACCOUNT_ID}/containers/{container_id}/workspaces/{workspace_id}"
+    tags_response = (
+        gtm_service.accounts()
+        .containers()
+        .workspaces()
+        .tags()
+        .list(parent=parent)
+        .execute()
+    )
+    for tag in tags_response.get("tag", []):
+        if tag.get("name") == tag_name:
+            return tag
+    return None
+
+
+def create_custom_tag(gtm_service, container_id, workspace_id, tag_body):
+    """preset.build_tag() の戻り値をそのまま GTM API に流す。"""
+    parent = f"accounts/{GTM_ACCOUNT_ID}/containers/{container_id}/workspaces/{workspace_id}"
+    return (
+        gtm_service.accounts()
+        .containers()
+        .workspaces()
+        .tags()
+        .create(parent=parent, body=tag_body)
+        .execute()
+    )
+
+
+def find_trigger_by_name(gtm_service, container_id, workspace_id, trigger_name):
+    """ワークスペース内で name 一致のトリガーを検索する（冪等性チェック用）。"""
+    parent = f"accounts/{GTM_ACCOUNT_ID}/containers/{container_id}/workspaces/{workspace_id}"
+    triggers_response = (
+        gtm_service.accounts()
+        .containers()
+        .workspaces()
+        .triggers()
+        .list(parent=parent)
+        .execute()
+    )
+    for trigger in triggers_response.get("trigger", []):
+        if trigger.get("name") == trigger_name:
+            return trigger
+    return None
+
+
+def create_trigger(gtm_service, container_id, workspace_id, trigger_body):
+    parent = f"accounts/{GTM_ACCOUNT_ID}/containers/{container_id}/workspaces/{workspace_id}"
+    return (
+        gtm_service.accounts()
+        .containers()
+        .workspaces()
+        .triggers()
+        .create(parent=parent, body=trigger_body)
+        .execute()
+    )
+
+
+def ensure_trigger(gtm_service, container_id, workspace_id, name, body):
+    """トリガーを冪等に確保し、(trigger_id, created_now) を返す。"""
+    existing = find_trigger_by_name(gtm_service, container_id, workspace_id, name)
+    if existing:
+        return existing["triggerId"], False
+    logger.info(f"  トリガー作成: {name}")
+    created = create_trigger(gtm_service, container_id, workspace_id, body)
+    return created["triggerId"], True
+
+
+def setup_custom_tags(
+    gtm_service,
+    container_id,
+    workspace_id,
+    custom_tags,
+    context: dict | None = None,
+):
+    """preset 駆動でカスタムタグを冪等に作成する。
+
+    各 preset の required_triggers() を先に冪等作成して ID を解決し、
+    builtin_trigger_ids() と結合してから build_tag() でタグ本体を構築する。
+
+    Args:
+        custom_tags: [{"preset": "ga4_event", "name": "...", "trigger": "..."}, ...] の list
+        context: preset 横断パラメータ（measurement_id 等）
+
+    Returns:
+        bool: 新規作成（タグまたはトリガー）が1件でもあれば True
+    """
+    if not custom_tags:
+        return False
+
+    context = context or {}
+    created_any = False
+
+    for spec in custom_tags:
+        preset_name = spec.get("preset")
+        if not preset_name:
+            raise ValueError(f"custom_tags の各要素には 'preset' が必須です: {spec!r}")
+
+        preset_cls = get_preset(preset_name)
+        preset = preset_cls(spec)
+        tag_name = preset.tag_name
+
+        # 1. 必要なトリガーを冪等確保
+        trigger_ids: list[str] = list(preset.builtin_trigger_ids())
+        for trig_spec in preset.required_triggers():
+            trig_id, trig_created = ensure_trigger(
+                gtm_service,
+                container_id,
+                workspace_id,
+                trig_spec["name"],
+                trig_spec["body"],
+            )
+            trigger_ids.append(trig_id)
+            if trig_created:
+                created_any = True
+
+        # 2. タグ本体を冪等作成
+        existing = find_tag_by_name(gtm_service, container_id, workspace_id, tag_name)
+        if existing:
+            logger.info(f"  カスタムタグ既存（スキップ）: {tag_name}")
+            continue
+
+        tag_body = preset.build_tag(trigger_ids, context=context)
+        logger.info(f"  カスタムタグ作成: {tag_name} (preset={preset_name})")
+        try:
+            create_custom_tag(gtm_service, container_id, workspace_id, tag_body)
+            created_any = True
+        except Exception as e:
+            if "duplicate name" in str(e).lower():
+                logger.info(f"  カスタムタグ既存（スキップ）: {tag_name}")
+            else:
+                raise
+
+    return created_any
+
+
 def has_unpublished_changes(gtm_service, container_id, workspace_id):
     """ワークスペースに未公開の変更があるか確認する。"""
     workspace = (
@@ -176,9 +314,14 @@ def setup_gtm(
     gtm_service,
     client_slug,
     measurement_id,
+    custom_tags: list[dict] | None = None,
 ):
-    """GTM コンテナ作成 → GA4タグ設定 → 公開 を一括実行する。
+    """GTM コンテナ作成 → GA4タグ設定 → カスタムタグ → 公開 を一括実行する。
     既存コンテナ/タグがある場合はスキップする。
+
+    Args:
+        custom_tags: preset 駆動のカスタムタグ仕様 list。
+            例: [{"preset": "ga4_event", "name": "form_submit_clinic", "trigger": "form_submit"}]
 
     Returns:
         dict: container_id, public_id, version_id, skipped
@@ -215,12 +358,23 @@ def setup_gtm(
             else:
                 raise
 
-    # 4. バージョン作成 → 公開（新規タグがある場合のみ）
+    # 4. カスタムタグ（preset 駆動）: 既存スキップ → 新規作成
+    custom_created = setup_custom_tags(
+        gtm_service,
+        container_id,
+        workspace_id,
+        custom_tags or [],
+        context={"measurement_id": measurement_id},
+    )
+    if custom_created:
+        needs_publish = True
+
+    # 5. バージョン作成 → 公開（新規タグがある場合のみ）
     if needs_publish:
         logger.info("  バージョン作成・公開中...")
         version_id = publish_container(
             gtm_service, container_id, workspace_id,
-            "v1 - Initial GA4 setup",
+            "Initial setup (GA4 + custom tags)",
         )
     else:
         version_id = get_latest_version_id(gtm_service, container_id)
@@ -241,7 +395,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) < 3:
-        print("Usage: python -m gtm.setup <client_slug> <measurement_id> [clarity_project_id]")
+        print("Usage: python -m gtm.setup <client_slug> <measurement_id>")
         sys.exit(1)
 
     service = get_service()
@@ -249,6 +403,5 @@ if __name__ == "__main__":
         service,
         client_slug=sys.argv[1],
         measurement_id=sys.argv[2],
-        clarity_project_id=sys.argv[3] if len(sys.argv) > 3 else None,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))

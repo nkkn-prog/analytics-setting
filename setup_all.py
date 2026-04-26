@@ -8,7 +8,7 @@ Usage:
         --client-name "田中クリニック" \
         --client-slug "tanaka-clinic" \
         --site-url "https://tanaka-clinic.com/" \
-        [--clarity-project-id "xxxxxxxxxx"] \
+        [--config clients/tanaka-clinic/tags.yaml] \
         [--verification-method ANALYTICS]
 """
 
@@ -16,10 +16,17 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 
+import yaml
+
 from auth import get_credentials
-from ga4.setup import create_property_and_stream
+from ga4.setup import (
+    create_property_and_stream,
+    setup_conversion_events,
+    setup_custom_dimensions,
+)
 from ga4.setup import get_client as get_ga4_client
 from gtm.setup import get_service as get_gtm_service
 from gtm.setup import setup_gtm
@@ -32,6 +39,39 @@ logging.basicConfig(
 )
 logger = logging.getLogger("setup_all")
 
+ENV_VAR_PATTERN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
+
+
+def _expand_env_vars(value):
+    """文字列中の `${ENV_VAR}` を環境変数で再帰的に置換する。
+
+    機微値（API キー等）は YAML 直書きせず .env / 環境変数に逃がす想定。
+    未定義の環境変数を参照した場合は ValueError で早期に止める。
+    """
+    if isinstance(value, str):
+        def repl(match):
+            name = match.group(1)
+            if name not in os.environ:
+                raise ValueError(
+                    f"設定ファイル中で参照された環境変数 ${{{name}}} が未定義です"
+                )
+            return os.environ[name]
+        return ENV_VAR_PATTERN.sub(repl, value)
+    if isinstance(value, list):
+        return [_expand_env_vars(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _expand_env_vars(v) for k, v in value.items()}
+    return value
+
+
+def load_config(config_path: str) -> dict:
+    """YAML 設定ファイルを読み込み、`${ENV_VAR}` を展開する。"""
+    with open(config_path, encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+    if not isinstance(raw, dict):
+        raise ValueError(f"設定ファイルのトップレベルは mapping である必要があります: {config_path}")
+    return _expand_env_vars(raw)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -40,7 +80,7 @@ def main():
     parser.add_argument("--client-name", required=True, help="顧客表示名（例: 田中クリニック）")
     parser.add_argument("--client-slug", required=True, help="顧客識別子（例: tanaka-clinic）")
     parser.add_argument("--site-url", required=True, help="サイトURL（例: https://tanaka-clinic.com/）")
-    parser.add_argument("--clarity-project-id", default=None, help="Microsoft Clarity プロジェクトID（任意）")
+    parser.add_argument("--config", default=None, help="クライアント固有のカスタムタグ等を定義する YAML 設定ファイル")
     parser.add_argument("--html-path", default=None, help="GTMスニペット埋め込み先（HTMLファイルまたはディレクトリ）")
     parser.add_argument(
         "--verification-method",
@@ -49,6 +89,30 @@ def main():
         help="Search Console 検証方式（デフォルト: ANALYTICS）",
     )
     args = parser.parse_args()
+
+    # 設定ファイル読み込み（任意）
+    config = load_config(args.config) if args.config else {}
+    ga4_config = config.get("ga4", {}) or {}
+    ga4_custom_events = list(ga4_config.get("custom_events", []))
+    ga4_custom_dimensions = list(ga4_config.get("custom_dimensions", []))
+
+    # ga4.custom_events[] は GTM 側のタグ生成にも使う（ga4_event preset へ変換）
+    custom_tags = list(config.get("custom_tags", []))
+    for event in ga4_custom_events:
+        if not event.get("name"):
+            raise ValueError(f"ga4.custom_events[].name は必須: {event!r}")
+        custom_tags.append(
+            {
+                "preset": "ga4_event",
+                "name": event["name"],
+                "trigger": event.get("trigger", "page_view"),
+            }
+        )
+
+    # GA4 側でコンバージョン化するイベント名を抽出
+    conversion_event_names = [
+        e["name"] for e in ga4_custom_events if e.get("mark_as_conversion")
+    ]
 
     results = {}
 
@@ -79,6 +143,27 @@ def main():
         logger.info("  (既存プロパティを再利用)")
 
     # =========================================================
+    # Step 1.5: GA4 カスタムディメンション + コンバージョン登録（任意）
+    # =========================================================
+    if ga4_custom_dimensions or conversion_event_names:
+        logger.info("=" * 60)
+        logger.info("Step 1.5: GA4 カスタムディメンション・コンバージョン登録")
+        logger.info("=" * 60)
+        property_name = ga4_result["property_name"]
+
+        if ga4_custom_dimensions:
+            created = setup_custom_dimensions(
+                ga4_client, property_name, ga4_custom_dimensions
+            )
+            logger.info(f"  カスタムディメンション: 新規{created}件 / 計{len(ga4_custom_dimensions)}件")
+
+        if conversion_event_names:
+            created = setup_conversion_events(
+                ga4_client, property_name, conversion_event_names
+            )
+            logger.info(f"  コンバージョン: 新規{created}件 / 計{len(conversion_event_names)}件")
+
+    # =========================================================
     # Step 2: GTM コンテナ作成 → GA4タグ設定 → 公開
     # =========================================================
     logger.info("=" * 60)
@@ -90,7 +175,7 @@ def main():
         gtm_service,
         client_slug=args.client_slug,
         measurement_id=measurement_id,
-        clarity_project_id=args.clarity_project_id,
+        custom_tags=custom_tags,
     )
     results["gtm"] = gtm_result
 
@@ -197,8 +282,14 @@ def main():
         "search_console_url": sc_result["site_url"],
         "search_console_method": sc_result["method"],
     }
-    if args.clarity_project_id:
-        summary["clarity_project_id"] = args.clarity_project_id
+    if custom_tags:
+        summary["custom_tags"] = [
+            {"preset": t.get("preset"), "name": t.get("name")} for t in custom_tags
+        ]
+    if ga4_custom_dimensions:
+        summary["ga4_custom_dimensions"] = [d["parameter_name"] for d in ga4_custom_dimensions]
+    if conversion_event_names:
+        summary["ga4_conversions"] = conversion_event_names
 
     print("\n" + json.dumps(summary, indent=2, ensure_ascii=False))
     return summary
