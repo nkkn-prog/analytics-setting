@@ -74,7 +74,7 @@ python setup_all.py \
 | `--client-slug` | Yes | 顧客識別子（英数字・ハイフン） |
 | `--site-url` | Yes | サイト URL（末尾 `/` 必須） |
 | `--html-path` | No | GTM スニペット埋め込み先（ファイルまたはディレクトリ） |
-| `--clarity-project-id` | No | Microsoft Clarity プロジェクト ID |
+| `--config` | No | クライアント固有のカスタムタグ等を定義する YAML（例: `clients/tanaka-clinic/tags.yaml`） |
 | `--verification-method` | No | Search Console 検証方式（デフォルト: `ANALYTICS`） |
 
 ### 各モジュール単体実行
@@ -88,13 +88,36 @@ python -m search_console.setup "https://tanaka-clinic.com/" TAG_MANAGER
 ## 処理フロー
 
 ```
-Step 1: GA4 プロパティ・データストリーム作成 → Measurement ID 取得
-Step 2: GTM コンテナ作成 → GA4 タグ設定 → バージョン公開 → GTM Public ID 取得
-Step 3: GTM スニペットを HTML に埋め込み（--html-path 指定時）
-Step 4: Search Console にサイト追加 → 所有権検証
+Step 1:   GA4 プロパティ・データストリーム作成 → Measurement ID 取得
+Step 1.5: GA4 カスタムディメンション・コンバージョン登録（--config 指定時）
+Step 2:   GTM コンテナ作成 → GA4 設定タグ + カスタムタグ → バージョン公開
+Step 3:   GTM スニペットを HTML に埋め込み（--html-path 指定時）
+Step 4:   Search Console にサイト追加 → 所有権検証
 ```
 
 各ステップで既存リソースを自動検出し、重複作成を防止する（冪等）。
+
+## カスタムタグ自動設定
+
+`--config clients/{slug}/tags.yaml` で計測仕様を渡すと、GA4 + GTM の両方が一気通貫で設定される。
+詳細スキーマと preset 一覧は [docs/setup-guide.md](docs/setup-guide.md#設定ファイルconfig) を参照。
+
+```yaml
+ga4:
+  custom_events:
+    - name: form_submit_clinic
+      trigger: form_submit
+      mark_as_conversion: true
+  custom_dimensions:
+    - parameter_name: line_friend_id
+      display_name: LINE Friend ID
+      scope: EVENT
+```
+
+| preset | 用途 | 対応トリガー |
+|--------|------|------------|
+| `ga4_event` | GA4 イベントタグ + 必要なトリガーを生成 | `form_submit` / `page_view` |
+| `custom_html` | 任意の HTML スニペット | `all_pages` |
 
 ## ディレクトリ構成
 
@@ -110,7 +133,8 @@ analytics-setting/
 │   └── setup.py            # GA4 プロパティ・データストリーム作成
 ├── gtm/
 │   ├── setup.py            # GTM コンテナ・タグ作成・公開
-│   └── embed.py            # GTM スニペット HTML 埋め込み
+│   ├── embed.py            # GTM スニペット HTML 埋め込み
+│   └── presets/            # カスタムタグ preset（custom_html 等）
 ├── search_console/
 │   └── setup.py            # Search Console 登録・検証
 └── docs/
