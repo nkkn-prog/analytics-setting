@@ -1,0 +1,35 @@
+# カスタムタグ設定ファイル サンプル
+#
+# `python setup_all.py --config clients/example/tags.yaml ...` のように渡すと、
+# このファイル1本から GA4 + GTM の両方が一気通貫で自動設定される。
+#
+# - GA4 側: カスタムディメンション登録 + 「主要なイベント（コンバージョン）」昇格
+# - GTM 側: 各 custom_events に対応する GA4 イベントタグ + 必要なトリガーを生成
+#
+# 同名イベント・同名タグ・同名トリガーは再実行時に自動スキップされる（冪等）。
+
+ga4:
+  # 計測したいカスタムイベント。Claude へのプロンプト指示から生成する想定。
+  custom_events:
+    # 例: フォーム送信をコンバージョン計測
+    - name: form_submit_clinic
+      trigger: form_submit         # 全フォーム送信で発火
+      mark_as_conversion: true     # GA4 側で「主要なイベント」に昇格
+
+    # 例: サンクスページ到達をコンバージョン計測
+    - name: page_view_thanks
+      trigger: page_view           # 全ページ表示で発火（実運用では URL 条件を後続PRで追加）
+      mark_as_conversion: true
+
+  # レポートで使いたい独自ディメンション
+  custom_dimensions:
+    - parameter_name: line_friend_id
+      display_name: LINE Friend ID
+      scope: EVENT                 # EVENT / USER / ITEM
+
+# preset に該当しない案件特有のスニペットがある場合のみ使う
+# custom_tags:
+#   - preset: custom_html
+#     name: "独自タグ"
+#     html: |
+#       <script>...</script>
