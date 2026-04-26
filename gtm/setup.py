@@ -124,59 +124,6 @@ def create_ga4_tag(gtm_service, container_id, workspace_id, measurement_id):
     return tag
 
 
-def create_clarity_tag(gtm_service, container_id, workspace_id, clarity_project_id):
-    """Microsoft Clarity タグを作成する（任意）。"""
-    parent = f"accounts/{GTM_ACCOUNT_ID}/containers/{container_id}/workspaces/{workspace_id}"
-    tag = (
-        gtm_service.accounts()
-        .containers()
-        .workspaces()
-        .tags()
-        .create(
-            parent=parent,
-            body={
-                "name": "Microsoft Clarity",
-                "type": "html",
-                "parameter": [
-                    {
-                        "type": "template",
-                        "key": "html",
-                        "value": (
-                            '<script type="text/javascript">\n'
-                            "    (function(c,l,a,r,i,t,y){\n"
-                            "        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};\n"
-                            '        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;\n'
-                            "        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);\n"
-                            f'    }})(window, document, "clarity", "script", "{clarity_project_id}");\n'
-                            "</script>"
-                        ),
-                    }
-                ],
-                "firingTriggerId": ["2147479553"],
-            },
-        )
-        .execute()
-    )
-    return tag
-
-
-def find_existing_clarity_tag(gtm_service, container_id, workspace_id):
-    """ワークスペース内に既存の Clarity タグがあるか確認する。"""
-    parent = f"accounts/{GTM_ACCOUNT_ID}/containers/{container_id}/workspaces/{workspace_id}"
-    tags_response = (
-        gtm_service.accounts()
-        .containers()
-        .workspaces()
-        .tags()
-        .list(parent=parent)
-        .execute()
-    )
-    for tag in tags_response.get("tag", []):
-        if tag.get("name") == "Microsoft Clarity":
-            return tag
-    return None
-
-
 def has_unpublished_changes(gtm_service, container_id, workspace_id):
     """ワークスペースに未公開の変更があるか確認する。"""
     workspace = (
@@ -229,7 +176,6 @@ def setup_gtm(
     gtm_service,
     client_slug,
     measurement_id,
-    clarity_project_id=None,
 ):
     """GTM コンテナ作成 → GA4タグ設定 → 公開 を一括実行する。
     既存コンテナ/タグがある場合はスキップする。
@@ -269,31 +215,12 @@ def setup_gtm(
             else:
                 raise
 
-    # 4. Clarity タグ: 既存チェック → なければ作成（任意）
-    if clarity_project_id:
-        existing_clarity = find_existing_clarity_tag(gtm_service, container_id, workspace_id)
-        if existing_clarity:
-            logger.info("  Clarity タグは既に存在（スキップ）")
-        else:
-            logger.info(f"  Clarity タグ作成: {clarity_project_id}")
-            try:
-                create_clarity_tag(gtm_service, container_id, workspace_id, clarity_project_id)
-                needs_publish = True
-            except Exception as e:
-                if "duplicate name" in str(e).lower():
-                    logger.info("  Clarity タグは既に存在（スキップ）")
-                else:
-                    raise
-
-    # 5. バージョン作成 → 公開（新規タグがある場合のみ）
+    # 4. バージョン作成 → 公開（新規タグがある場合のみ）
     if needs_publish:
-        tags = "GA4"
-        if clarity_project_id:
-            tags += " + Clarity"
         logger.info("  バージョン作成・公開中...")
         version_id = publish_container(
             gtm_service, container_id, workspace_id,
-            f"v1 - Initial {tags} setup",
+            "v1 - Initial GA4 setup",
         )
     else:
         version_id = get_latest_version_id(gtm_service, container_id)
