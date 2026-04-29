@@ -1,0 +1,12 @@
+{
+  "dataSource": "ga4-api",
+  "propertyId": "properties/534578622",
+  "siteName": "テストサイト",
+  "period": { "start": "2026-03-01", "end": "2026-03-31" },
+  "industry": "ec-general",
+  "scale": "small",
+  "goals": ["sales"],
+  "targetAudience": "（検証用 / 業種特化なし）",
+  "focusNotes": "GA4 Data API 連携の動作確認用ダミー設定。",
+  "siteUrl": "https://example.com"
+}

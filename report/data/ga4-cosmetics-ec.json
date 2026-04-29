@@ -1,0 +1,90 @@
+{
+  "propertyId": "properties/100000001",
+  "siteName": "Lumière Skincare 公式オンラインストア",
+  "period": { "start": "2026-03-01", "end": "2026-03-31" },
+  "summary": {
+    "activeUsers": 12725,
+    "newUsers": 9150,
+    "sessions": 18550,
+    "engagementRate": 0.43,
+    "averageSessionDuration": 78,
+    "screenPageViews": 46200,
+    "conversions": 163,
+    "totalRevenue": 2485000
+  },
+  "comparison": {
+    "previousPeriod": { "start": "2026-02-01", "end": "2026-02-28" },
+    "summaryDeltas": {
+      "activeUsers": -0.08,
+      "sessions": -0.05,
+      "conversions": -0.18,
+      "totalRevenue": -0.22
+    }
+  },
+  "channels": [
+    { "name": "Paid Search", "sessions": 6650, "conversions": 73 },
+    { "name": "Organic Search", "sessions": 4900, "conversions": 45 },
+    { "name": "Direct", "sessions": 3500, "conversions": 28 },
+    { "name": "Social", "sessions": 2600, "conversions": 13 },
+    { "name": "Referral", "sessions": 900, "conversions": 4 }
+  ],
+  "topPages": [
+    { "path": "/", "views": 12500, "engagementRate": 0.55, "bounceRate": 0.38 },
+    { "path": "/products/sensitive-skincare-set", "views": 4400, "engagementRate": 0.48, "bounceRate": 0.42 },
+    { "path": "/products", "views": 2800, "engagementRate": 0.51, "bounceRate": 0.40 },
+    { "path": "/products/face-wash-mild", "views": 2100, "engagementRate": 0.46, "bounceRate": 0.44 },
+    { "path": "/products/moisture-cream", "views": 1850, "engagementRate": 0.45, "bounceRate": 0.46 },
+    { "path": "/campaign/spring-2026", "views": 1600, "engagementRate": 0.39, "bounceRate": 0.55 },
+    { "path": "/pricing", "views": 950, "engagementRate": 0.22, "bounceRate": 0.71 },
+    { "path": "/about", "views": 870, "engagementRate": 0.62, "bounceRate": 0.30 },
+    { "path": "/faq", "views": 740, "engagementRate": 0.58, "bounceRate": 0.33 },
+    { "path": "/products/serum-vitamin-c", "views": 690, "engagementRate": 0.41, "bounceRate": 0.49 },
+    { "path": "/reviews", "views": 540, "engagementRate": 0.49, "bounceRate": 0.41 },
+    { "path": "/contact", "views": 380, "engagementRate": 0.36, "bounceRate": 0.58 }
+  ],
+  "devices": [
+    { "category": "mobile", "sessions": 13500 },
+    { "category": "desktop", "sessions": 4250 },
+    { "category": "tablet", "sessions": 800 }
+  ],
+  "geo": [
+    { "country": "Japan", "sessions": 17800 },
+    { "country": "United States", "sessions": 320 },
+    { "country": "Taiwan", "sessions": 180 },
+    { "country": "South Korea", "sessions": 130 },
+    { "country": "Others", "sessions": 120 }
+  ],
+  "dailyTrend": [
+    { "date": "2026-03-01", "sessions": 580, "activeUsers": 410, "conversions": 4 },
+    { "date": "2026-03-02", "sessions": 540, "activeUsers": 380, "conversions": 5 },
+    { "date": "2026-03-03", "sessions": 600, "activeUsers": 420, "conversions": 6 },
+    { "date": "2026-03-04", "sessions": 620, "activeUsers": 430, "conversions": 6 },
+    { "date": "2026-03-05", "sessions": 640, "activeUsers": 440, "conversions": 7 },
+    { "date": "2026-03-06", "sessions": 680, "activeUsers": 470, "conversions": 8 },
+    { "date": "2026-03-07", "sessions": 720, "activeUsers": 510, "conversions": 7 },
+    { "date": "2026-03-08", "sessions": 700, "activeUsers": 490, "conversions": 6 },
+    { "date": "2026-03-09", "sessions": 580, "activeUsers": 410, "conversions": 5 },
+    { "date": "2026-03-10", "sessions": 610, "activeUsers": 430, "conversions": 5 },
+    { "date": "2026-03-11", "sessions": 650, "activeUsers": 460, "conversions": 6 },
+    { "date": "2026-03-12", "sessions": 670, "activeUsers": 470, "conversions": 7 },
+    { "date": "2026-03-13", "sessions": 690, "activeUsers": 480, "conversions": 8 },
+    { "date": "2026-03-14", "sessions": 730, "activeUsers": 520, "conversions": 9 },
+    { "date": "2026-03-15", "sessions": 710, "activeUsers": 500, "conversions": 8 },
+    { "date": "2026-03-16", "sessions": 590, "activeUsers": 415, "conversions": 5 },
+    { "date": "2026-03-17", "sessions": 620, "activeUsers": 435, "conversions": 6 },
+    { "date": "2026-03-18", "sessions": 600, "activeUsers": 420, "conversions": 5 },
+    { "date": "2026-03-19", "sessions": 590, "activeUsers": 410, "conversions": 5 },
+    { "date": "2026-03-20", "sessions": 580, "activeUsers": 405, "conversions": 5 },
+    { "date": "2026-03-21", "sessions": 620, "activeUsers": 430, "conversions": 5 },
+    { "date": "2026-03-22", "sessions": 600, "activeUsers": 420, "conversions": 4 },
+    { "date": "2026-03-23", "sessions": 540, "activeUsers": 380, "conversions": 4 },
+    { "date": "2026-03-24", "sessions": 540, "activeUsers": 380, "conversions": 4 },
+    { "date": "2026-03-25", "sessions": 530, "activeUsers": 375, "conversions": 4 },
+    { "date": "2026-03-26", "sessions": 510, "activeUsers": 360, "conversions": 3 },
+    { "date": "2026-03-27", "sessions": 500, "activeUsers": 350, "conversions": 3 },
+    { "date": "2026-03-28", "sessions": 540, "activeUsers": 385, "conversions": 4 },
+    { "date": "2026-03-29", "sessions": 520, "activeUsers": 370, "conversions": 3 },
+    { "date": "2026-03-30", "sessions": 480, "activeUsers": 340, "conversions": 3 },
+    { "date": "2026-03-31", "sessions": 470, "activeUsers": 330, "conversions": 3 }
+  ]
+}

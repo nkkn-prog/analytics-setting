@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>{{meta.siteName}} - GA4レポート</title>
+<style>{{{stylesCss}}}</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="report-header">
+    <h1>{{meta.siteName}} GA4レポート</h1>
+    <div class="meta">
+      <span>対象期間: {{meta.period.start}} 〜 {{meta.period.end}}</span>
+      <span>生成日時: {{meta.generatedAt}}</span>
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>1. 現状サマリ</h2>
+    <p class="headline">{{currentState.headline}}</p>
+    <div class="metric-grid">
+      {{#currentState.metrics}}
+      <div class="metric-card">
+        <div class="label">{{label}}</div>
+        <div class="value">{{value}}</div>
+        {{#change}}<div class="change {{changeClass}}">{{change}}</div>{{/change}}
+        <div class="comment">{{comment}}</div>
+      </div>
+      {{/currentState.metrics}}
+    </div>
+    <div class="chart-block">
+      <div class="chart-title">日次セッション推移</div>
+      {{{lineChartSvg}}}
+    </div>
+    <div class="chart-block">
+      <div class="chart-title">チャネル別セッション割合</div>
+      {{{channelChartSvg}}}
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>2. 良い点・伸びている領域</h2>
+    <ul class="highlight-list">
+      {{#currentState.highlights}}
+      <li>{{.}}</li>
+      {{/currentState.highlights}}
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>3. 課題</h2>
+    <ul class="issue-list">
+      {{#issues}}
+      <li class="issue-card severity-{{severity}}">
+        <div class="issue-head">
+          <span class="severity-badge severity-{{severity}}">{{severityLabel}}</span>
+          <span class="issue-title">{{title}}</span>
+        </div>
+        <div class="evidence">
+          根拠: {{evidence.dataPoint}} = {{evidence.value}}（{{evidence.period}}）
+        </div>
+        <div class="issue-explain">{{plainExplanation}}</div>
+      </li>
+      {{/issues}}
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>4. 推奨ネクストアクション</h2>
+    <ul class="action-list">
+      {{#nextActions}}
+      <li class="action-card">
+        <div class="action-head">
+          <span class="priority-badge">{{priority}}</span>
+          <span class="action-title">{{title}}</span>
+        </div>
+        <div class="badges">
+          <span class="badge impact-{{impactClass}}">期待効果 {{expectedImpact}}</span>
+          <span class="badge">難易度 {{difficulty}}</span>
+          <span class="badge">{{area}}</span>
+        </div>
+        <div class="action-desc">{{description}}</div>
+        <div class="kpi-watch"><span class="kpi-label">追跡指標:</span>{{kpiToWatch}}</div>
+      </li>
+      {{/nextActions}}
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>5. 今月のフォーカス</h2>
+    <div class="focus-card">
+      <div class="focus-title">{{monthlyFocus.title}}</div>
+      <div class="focus-why">{{monthlyFocus.why}}</div>
+      <div class="focus-firststep">最初の一歩: {{monthlyFocus.firstStep}}</div>
+    </div>
+  </section>
+
+  {{#hasGlossary}}
+  <section class="section">
+    <h2>6. 用語解説</h2>
+    <ul class="glossary-list">
+      {{#glossary}}
+      <li class="glossary-item">
+        <span class="term">{{term}}</span>
+        <span class="explain">{{plainExplanation}}</span>
+      </li>
+      {{/glossary}}
+    </ul>
+  </section>
+  {{/hasGlossary}}
+
+  {{#hasRegulatory}}
+  <section class="section">
+    <h2>7. 規制配慮メモ</h2>
+    <ul class="reg-list">
+      {{#regulatoryNotes}}
+      <li>{{.}}</li>
+      {{/regulatoryNotes}}
+    </ul>
+  </section>
+  {{/hasRegulatory}}
+
+  <footer class="report-footer">
+    <span>モデル: {{modelName}} / プロンプト版数: {{meta.promptVersion}} / 業種: {{meta.industry}}</span>
+    <span class="ai-notice">本レポートはAIにより自動生成されています。</span>
+  </footer>
+
+</div>
+</body>
+</html>
