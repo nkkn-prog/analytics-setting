@@ -1,0 +1,90 @@
+{
+  "propertyId": "properties/100000003",
+  "siteName": "Memolync Workspace",
+  "period": { "start": "2026-03-01", "end": "2026-03-31" },
+  "summary": {
+    "activeUsers": 22000,
+    "newUsers": 14500,
+    "sessions": 33120,
+    "engagementRate": 0.61,
+    "averageSessionDuration": 142,
+    "screenPageViews": 95800,
+    "conversions": 240,
+    "totalRevenue": 0
+  },
+  "comparison": {
+    "previousPeriod": { "start": "2026-02-01", "end": "2026-02-28" },
+    "summaryDeltas": {
+      "activeUsers": 0.12,
+      "sessions": 0.10,
+      "conversions": 0.18,
+      "totalRevenue": 0
+    }
+  },
+  "channels": [
+    { "name": "Direct", "sessions": 11900, "conversions": 95 },
+    { "name": "Paid Search", "sessions": 8800, "conversions": 78 },
+    { "name": "Organic Search", "sessions": 7400, "conversions": 48 },
+    { "name": "Referral", "sessions": 3300, "conversions": 12 },
+    { "name": "Social", "sessions": 1720, "conversions": 7 }
+  ],
+  "topPages": [
+    { "path": "/", "views": 18500, "engagementRate": 0.58, "bounceRate": 0.32 },
+    { "path": "/pricing", "views": 8200, "engagementRate": 0.46, "bounceRate": 0.43 },
+    { "path": "/docs", "views": 6800, "engagementRate": 0.72, "bounceRate": 0.20 },
+    { "path": "/docs/getting-started", "views": 4200, "engagementRate": 0.78, "bounceRate": 0.15 },
+    { "path": "/blog/2026/automation-tips", "views": 3500, "engagementRate": 0.65, "bounceRate": 0.28 },
+    { "path": "/docs/api-reference", "views": 2900, "engagementRate": 0.81, "bounceRate": 0.13 },
+    { "path": "/features", "views": 2400, "engagementRate": 0.52, "bounceRate": 0.38 },
+    { "path": "/blog/2026/team-collaboration", "views": 2200, "engagementRate": 0.61, "bounceRate": 0.31 },
+    { "path": "/signup", "views": 1800, "engagementRate": 0.40, "bounceRate": 0.48 },
+    { "path": "/docs/integrations", "views": 1600, "engagementRate": 0.69, "bounceRate": 0.24 },
+    { "path": "/blog/2026/release-notes-march", "views": 1400, "engagementRate": 0.57, "bounceRate": 0.34 },
+    { "path": "/enterprise", "views": 1200, "engagementRate": 0.49, "bounceRate": 0.40 }
+  ],
+  "devices": [
+    { "category": "desktop", "sessions": 21200 },
+    { "category": "mobile", "sessions": 9900 },
+    { "category": "tablet", "sessions": 2020 }
+  ],
+  "geo": [
+    { "country": "Japan", "sessions": 27800 },
+    { "country": "United States", "sessions": 2600 },
+    { "country": "Singapore", "sessions": 880 },
+    { "country": "South Korea", "sessions": 620 },
+    { "country": "Others", "sessions": 1220 }
+  ],
+  "dailyTrend": [
+    { "date": "2026-03-01", "sessions": 600, "activeUsers": 400, "conversions": 1 },
+    { "date": "2026-03-02", "sessions": 1250, "activeUsers": 830, "conversions": 10 },
+    { "date": "2026-03-03", "sessions": 1320, "activeUsers": 880, "conversions": 12 },
+    { "date": "2026-03-04", "sessions": 1280, "activeUsers": 850, "conversions": 11 },
+    { "date": "2026-03-05", "sessions": 1240, "activeUsers": 820, "conversions": 11 },
+    { "date": "2026-03-06", "sessions": 1180, "activeUsers": 780, "conversions": 10 },
+    { "date": "2026-03-07", "sessions": 620, "activeUsers": 410, "conversions": 1 },
+    { "date": "2026-03-08", "sessions": 580, "activeUsers": 385, "conversions": 1 },
+    { "date": "2026-03-09", "sessions": 1280, "activeUsers": 850, "conversions": 11 },
+    { "date": "2026-03-10", "sessions": 1340, "activeUsers": 890, "conversions": 12 },
+    { "date": "2026-03-11", "sessions": 1310, "activeUsers": 870, "conversions": 11 },
+    { "date": "2026-03-12", "sessions": 1270, "activeUsers": 845, "conversions": 11 },
+    { "date": "2026-03-13", "sessions": 1200, "activeUsers": 800, "conversions": 9 },
+    { "date": "2026-03-14", "sessions": 640, "activeUsers": 425, "conversions": 2 },
+    { "date": "2026-03-15", "sessions": 590, "activeUsers": 392, "conversions": 1 },
+    { "date": "2026-03-16", "sessions": 1290, "activeUsers": 858, "conversions": 11 },
+    { "date": "2026-03-17", "sessions": 1350, "activeUsers": 898, "conversions": 12 },
+    { "date": "2026-03-18", "sessions": 1320, "activeUsers": 878, "conversions": 11 },
+    { "date": "2026-03-19", "sessions": 1280, "activeUsers": 851, "conversions": 10 },
+    { "date": "2026-03-20", "sessions": 1210, "activeUsers": 805, "conversions": 9 },
+    { "date": "2026-03-21", "sessions": 630, "activeUsers": 419, "conversions": 1 },
+    { "date": "2026-03-22", "sessions": 580, "activeUsers": 386, "conversions": 1 },
+    { "date": "2026-03-23", "sessions": 1260, "activeUsers": 838, "conversions": 10 },
+    { "date": "2026-03-24", "sessions": 1300, "activeUsers": 865, "conversions": 11 },
+    { "date": "2026-03-25", "sessions": 1270, "activeUsers": 845, "conversions": 10 },
+    { "date": "2026-03-26", "sessions": 1230, "activeUsers": 818, "conversions": 10 },
+    { "date": "2026-03-27", "sessions": 1170, "activeUsers": 778, "conversions": 9 },
+    { "date": "2026-03-28", "sessions": 600, "activeUsers": 399, "conversions": 1 },
+    { "date": "2026-03-29", "sessions": 560, "activeUsers": 372, "conversions": 1 },
+    { "date": "2026-03-30", "sessions": 1180, "activeUsers": 785, "conversions": 9 },
+    { "date": "2026-03-31", "sessions": 1190, "activeUsers": 791, "conversions": 9 }
+  ]
+}
